@@ -1,13 +1,10 @@
 import { ExclamationCircleIcon } from '@heroicons/react/20/solid';
+import type { FieldError } from 'react-hook-form';
 import clsx from 'clsx';
 
 type InputProps = {
   inputProps: React.InputHTMLAttributes<HTMLInputElement>;
-  error?:
-    | {
-        message: string;
-      }
-    | undefined;
+  error?: FieldError;
 };
 
 const Input = ({ inputProps, error }: InputProps) => {

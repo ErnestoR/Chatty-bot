@@ -2,11 +2,17 @@
 import { type NextPage } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
+import type { SignInResponse } from 'next-auth/react';
+import { signIn, signOut, useSession } from 'next-auth/react';
+import { useRouter } from 'next/router';
+import type { GetServerSideProps, GetServerSidePropsContext } from 'next';
 
-import { api } from '../../utils/api';
+import { api } from 'utils/api';
+import { getServerAuthSession } from 'server/auth';
 
-const Signup: NextPage = () => {
+const Home: NextPage = () => {
   const hello = api.example.hello.useQuery({ text: 'from tRPC' });
+  const router = useRouter();
 
   return (
     <>
@@ -24,15 +30,15 @@ const Signup: NextPage = () => {
               alt="Your Company"
             />
             <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-              Create a new account
+              Sign in to your account
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600">
               Or{' '}
               <Link
-                href="/"
+                href="/signup"
                 className="font-medium text-indigo-600 hover:text-indigo-500"
               >
-                Already have an account? Sign in!
+                Create a new account
               </Link>
             </p>
           </div>
@@ -40,24 +46,6 @@ const Signup: NextPage = () => {
           <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
             <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
               <form className="space-y-6" action="#" method="POST">
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Username
-                  </label>
-                  <div className="mt-1">
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      required
-                      className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                    />
-                  </div>
-                </div>
                 <div>
                   <label
                     htmlFor="email"
@@ -96,16 +84,51 @@ const Signup: NextPage = () => {
                   </div>
                 </div>
 
-                <div className="pt-6">
+                <div>
                   <button
-                    type="submit"
+                    type="button"
                     className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    onClick={() => {
+                      signIn('credentials', {
+                        name: 'ernesto',
+                        password: 'test',
+                        redirect: false,
+                      })
+                        .then(async (response) => {
+                          const { error } = response as SignInResponse;
+
+                          if (error) {
+                            // TODO: handle error
+                            console.log(error);
+                          }
+
+                          const { callbackUrl } = router.query;
+
+                          if (callbackUrl) {
+                            //this is the url that you want to redirect if callbackUrl exists
+                            await router.push(callbackUrl as string);
+                          } else {
+                            await router.push('/chat');
+                          }
+                        })
+                        .catch((err) => {
+                          // TODO: handle error
+                          console.log(err);
+                        });
+                    }}
                   >
-                    Create Account
+                    Sign in
                   </button>
                 </div>
               </form>
             </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-2xl text-white">
+              {hello.data ? hello.data.greeting : 'Loading tRPC query...'}
+            </p>
+            <AuthShowcase />
           </div>
         </div>
       </main>
@@ -113,4 +136,45 @@ const Signup: NextPage = () => {
   );
 };
 
-export default Signup;
+export default Home;
+
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const session = await getServerAuthSession(ctx);
+
+  if (session) {
+    return {
+      redirect: {
+        destination: '/chat',
+        permanent: false,
+      },
+    };
+  }
+
+  return {
+    props: {},
+  };
+};
+
+const AuthShowcase: React.FC = () => {
+  const { data: sessionData } = useSession();
+
+  const { data: secretMessage } = api.auth.getSecretMessage.useQuery(
+    undefined, // no input
+    { enabled: sessionData?.user !== undefined },
+  );
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-4">
+      <p className="text-center text-2xl text-white">
+        {sessionData && <span>Logged in as {sessionData.user?.name}</span>}
+        {secretMessage && <span> - {secretMessage}</span>}
+      </p>
+      <button
+        className="rounded-full bg-white/10 px-10 py-3 font-semibold text-white no-underline transition hover:bg-white/20"
+        onClick={sessionData ? () => void signOut() : () => void signIn()}
+      >
+        {sessionData ? 'Sign out' : 'Sign in'}
+      </button>
+    </div>
+  );
+};
