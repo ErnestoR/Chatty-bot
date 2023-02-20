@@ -52,12 +52,14 @@ export const authOptions: NextAuthOptions = {
 
       return token;
     },
-    session({ session, user, token }) {
-      // if (session?.user) {
-      //   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      //   // session.user.id = token?.user?.id;
-      //   // session.user.role = user.role; <-- put other properties on the session here
-      // }
+    session({ session, token }) {
+      if (session?.user) {
+        const { user } = token as { user: { id: string; email: string } };
+
+        session.user.id = user?.id;
+        session.user.email = user?.email;
+        // session.user.role = user.role; <-- put other properties on the session here
+      }
 
       return session;
     },
