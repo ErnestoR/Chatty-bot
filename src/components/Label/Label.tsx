@@ -1,5 +1,6 @@
 type LabelProps = {
   label: string;
+  className?: string;
   children?: React.ReactNode;
 };
 

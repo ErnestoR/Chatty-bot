@@ -1,6 +1,7 @@
 import { ExclamationCircleIcon } from '@heroicons/react/20/solid';
 import type { FieldError } from 'react-hook-form';
 import clsx from 'clsx';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 
 type InputProps = {
   inputProps: React.InputHTMLAttributes<HTMLInputElement>;
@@ -9,9 +10,10 @@ type InputProps = {
 
 const Input = ({ inputProps, error }: InputProps) => {
   const { id = '' } = inputProps;
+  const [parent] = useAutoAnimate();
 
   return (
-    <>
+    <div ref={parent}>
       <div className="relative mt-1 rounded-md shadow-sm">
         <input
           {...inputProps}
@@ -44,7 +46,7 @@ const Input = ({ inputProps, error }: InputProps) => {
           {error?.message}
         </p>
       )}
-    </>
+    </div>
   );
 };
 

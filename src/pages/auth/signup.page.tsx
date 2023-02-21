@@ -2,29 +2,30 @@
 import { type NextPage } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
-import type { SignInResponse } from 'next-auth/react';
-import { signIn, signOut, useSession } from 'next-auth/react';
-import { useRouter } from 'next/router';
-import type { GetServerSideProps, GetServerSidePropsContext } from 'next';
 import type { SubmitHandler } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
-import { api } from 'utils/api';
-import { getServerAuthSession } from 'server/auth';
-import Label from 'components/Label';
 import Input from 'components/Input';
+import Label from 'components/Label';
 
 const sigupSchema = z.object({
+  name: z
+    .string({
+      required_error: 'Name must be a string',
+    })
+    .trim()
+    .min(4, {
+      message: 'Name must be at least 4 characters',
+    }),
   password: z.string().trim().min(8),
   email: z.string().trim().email(),
 });
 
 type FormData = z.infer<typeof sigupSchema>;
 
-const Home: NextPage = () => {
-  const router = useRouter();
+const Signup: NextPage = () => {
   const {
     register,
     handleSubmit,
@@ -33,36 +34,7 @@ const Home: NextPage = () => {
     resolver: zodResolver(sigupSchema),
   });
 
-  const onSubmit: SubmitHandler<FormData> = (data) => {
-    console.log(data);
-
-    // signIn('credentials', {
-    //   name: 'ernesto',
-    //   password: 'test',
-    //   redirect: false,
-    // })
-    //   .then(async (response) => {
-    //     const { error } = response as SignInResponse;
-
-    //     if (error) {
-    //       // TODO: handle error
-    //       console.log(error);
-    //     }
-
-    //     const { callbackUrl } = router.query;
-
-    //     if (callbackUrl) {
-    //       //this is the url that you want to redirect if callbackUrl exists
-    //       await router.push(callbackUrl as string);
-    //     } else {
-    //       await router.push('/chat');
-    //     }
-    //   })
-    //   .catch((err) => {
-    //     // TODO: handle error
-    //     console.log(err);
-    //   });
-  };
+  const onSubmit: SubmitHandler<FormData> = (data) => console.log(data);
 
   return (
     <>
@@ -80,15 +52,15 @@ const Home: NextPage = () => {
               alt="Your Company"
             />
             <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-              Sign in to your account
+              Create a new account
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600">
               Or{' '}
               <Link
-                href="/auth/signup"
+                href="/"
                 className="font-medium text-indigo-600 hover:text-indigo-500"
               >
-                Create a new account
+                Already have an account? Sign in!
               </Link>
             </p>
           </div>
@@ -96,9 +68,21 @@ const Home: NextPage = () => {
           <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
             <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
               <form
-                className="flex flex-col gap-6 "
+                className="flex flex-col gap-4"
                 onSubmit={handleSubmit(onSubmit)}
               >
+                <Label label="Name">
+                  <Input inputProps={register('name')} error={errors?.name} />
+                </Label>
+                <Label label="Password">
+                  <Input
+                    inputProps={{
+                      ...register('password'),
+                      type: 'password',
+                    }}
+                    error={errors?.password}
+                  />
+                </Label>
                 <Label label="Email">
                   <Input
                     inputProps={{
@@ -109,22 +93,12 @@ const Home: NextPage = () => {
                   />
                 </Label>
 
-                <Label label="Password">
-                  <Input
-                    inputProps={{
-                      ...register('password'),
-                      type: 'password',
-                    }}
-                    error={errors?.password}
-                  />
-                </Label>
-
-                <div>
+                <div className="pt-6">
                   <button
                     type="submit"
                     className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                   >
-                    Sign in
+                    Create Account
                   </button>
                 </div>
               </form>
@@ -136,21 +110,4 @@ const Home: NextPage = () => {
   );
 };
 
-export default Home;
-
-export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const session = await getServerAuthSession(ctx);
-
-  if (session) {
-    return {
-      redirect: {
-        destination: '/chat',
-        permanent: false,
-      },
-    };
-  }
-
-  return {
-    props: {},
-  };
-};
+export default Signup;

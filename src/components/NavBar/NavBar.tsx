@@ -25,7 +25,7 @@ const NavBar = (props: NavBarProps) => {
   const router = useRouter();
 
   return (
-    <>
+    <div className="h-full min-h-screen bg-gray-100">
       <Disclosure as="nav" className="bg-gray-800">
         {({ open }) => (
           <>
@@ -169,7 +169,7 @@ const NavBar = (props: NavBarProps) => {
         )}
       </Disclosure>
       {children}
-    </>
+    </div>
   );
 };
 
