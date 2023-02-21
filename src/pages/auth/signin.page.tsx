@@ -3,15 +3,16 @@ import { type NextPage } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
 import type { SignInResponse } from 'next-auth/react';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import type { GetServerSideProps, GetServerSidePropsContext } from 'next';
+import type { GetServerSideProps } from 'next';
 import type { SubmitHandler } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useState } from 'react';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 
-import { api } from 'utils/api';
 import { getServerAuthSession } from 'server/auth';
 import Label from 'components/Label';
 import Input from 'components/Input';
@@ -32,36 +33,36 @@ const Home: NextPage = () => {
   } = useForm<FormData>({
     resolver: zodResolver(sigupSchema),
   });
+  const [hasLoginErrors, setHasLoginErrors] = useState<boolean>(false);
+  const [parent] = useAutoAnimate();
 
   const onSubmit: SubmitHandler<FormData> = (data) => {
-    console.log(data);
+    signIn('credentials', {
+      ...data,
+      redirect: false,
+    })
+      .then(async (response) => {
+        const { error } = response as SignInResponse;
 
-    // signIn('credentials', {
-    //   name: 'ernesto',
-    //   password: 'test',
-    //   redirect: false,
-    // })
-    //   .then(async (response) => {
-    //     const { error } = response as SignInResponse;
+        if (error) {
+          // TODO: handle error
+          setHasLoginErrors(true);
+          return;
+        }
 
-    //     if (error) {
-    //       // TODO: handle error
-    //       console.log(error);
-    //     }
+        const { callbackUrl } = router.query;
 
-    //     const { callbackUrl } = router.query;
-
-    //     if (callbackUrl) {
-    //       //this is the url that you want to redirect if callbackUrl exists
-    //       await router.push(callbackUrl as string);
-    //     } else {
-    //       await router.push('/chat');
-    //     }
-    //   })
-    //   .catch((err) => {
-    //     // TODO: handle error
-    //     console.log(err);
-    //   });
+        if (callbackUrl) {
+          //this is the url that you want to redirect if callbackUrl exists
+          await router.push(callbackUrl as string);
+        } else {
+          await router.push('/chat');
+        }
+      })
+      .catch((err) => {
+        // TODO: handle error
+        console.log(err);
+      });
   };
 
   return (
@@ -98,6 +99,7 @@ const Home: NextPage = () => {
               <form
                 className="flex flex-col gap-6 "
                 onSubmit={handleSubmit(onSubmit)}
+                ref={parent}
               >
                 <Label label="Email">
                   <Input
@@ -118,6 +120,12 @@ const Home: NextPage = () => {
                     error={errors?.password}
                   />
                 </Label>
+
+                {hasLoginErrors && (
+                  <div className="text-red-500">
+                    Invalid email or password! Please try again.
+                  </div>
+                )}
 
                 <div>
                   <button

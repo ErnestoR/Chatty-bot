@@ -2,6 +2,7 @@ import type { SubmitHandler } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'react-toastify';
 
 import Label from 'components/Label';
 import Input from 'components/Input';
@@ -33,7 +34,11 @@ type FormData = z.infer<typeof userSchema>;
 
 const UserForm = (props: UserFormProps) => {
   const { user } = props;
-  const { mutate } = api.user.updateUserbyId.useMutation();
+  const { mutate } = api.user.updateUserbyId.useMutation({
+    onSuccess: () => {
+      toast.success('User updated');
+    },
+  });
 
   const {
     register,

@@ -74,21 +74,23 @@ export const authOptions: NextAuthOptions = {
       // e.g. domain, username, password, 2FA token, etc.
       // You can pass any HTML attribute to the <input> tag through the object.
       credentials: {
-        name: { label: 'name', type: 'text', placeholder: 'jsmith' },
+        email: { label: 'email', type: 'text', placeholder: 'jsmith' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials, req) {
-        const { name, password } = credentials as {
-          name: string;
+        const { email, password } = credentials as {
+          email: string;
           password: string;
         };
         const user = await prisma.user.findUnique({
           where: {
-            name,
+            email,
           },
         });
 
-        //TODO: check password
+        if (user?.password !== password) {
+          return null;
+        }
 
         if (user) {
           // Any object returned will be saved in `user` property of the JWT
