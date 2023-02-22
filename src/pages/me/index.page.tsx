@@ -39,8 +39,8 @@ const ChatPage = (props: ChatPageProps) => {
       dropdownLinks={dropdownNavigation}
       sessionUser={sessionUser}
     >
-      <main className="relative ">
-        <div className=" mx-auto max-w-screen-xl pb-6 pt-8 sm:px-6 lg:px-8 lg:pb-16">
+      <main>
+        <div className="mx-auto max-w-screen-xl pb-6 pt-8 sm:px-6 lg:px-8 lg:pb-16">
           <h1 className="mb-4 ml-4 text-2xl font-bold tracking-tight text-gray-800 sm:ml-6 sm:text-3xl">
             Profile
           </h1>

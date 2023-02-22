@@ -14,12 +14,6 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Example {
-    id        String   @id @default(cuid())
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-}
-
 // Necessary for Next auth
 model Account {
     id                String  @id @default(cuid())
@@ -56,6 +50,7 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
+    chats         Chat[]
 }
 
 model VerificationToken {
@@ -64,4 +59,23 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+model Chat {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    userId    String
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    messages  Messages[]
+}
+
+model Messages {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    chatId    String
+    chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+    message   String
+    isBot     Boolean
 }
