@@ -6,9 +6,12 @@ import type { SubmitHandler } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/router';
 
 import Input from 'components/Input';
 import Label from 'components/Label';
+import { api } from 'utils/api';
 
 const sigupSchema = z.object({
   name: z
@@ -33,8 +36,25 @@ const Signup: NextPage = () => {
   } = useForm<FormData>({
     resolver: zodResolver(sigupSchema),
   });
+  const router = useRouter();
+  const { mutate } = api.auth.signup.useMutation();
 
-  const onSubmit: SubmitHandler<FormData> = (data) => console.log(data);
+  const onSubmit: SubmitHandler<FormData> = (data) => {
+    mutate(data, {
+      onSuccess: () => {
+        signIn('credentials', {
+          ...data,
+          redirect: false,
+        })
+          .then(async () => {
+            await router.push('/chat');
+          })
+          .catch((err) => {
+            console.log(err);
+          });
+      },
+    });
+  };
 
   return (
     <>
