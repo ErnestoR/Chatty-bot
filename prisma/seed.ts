@@ -1,6 +1,10 @@
 import { prisma } from '../src/server/db';
 
 async function main() {
+  await prisma.user.deleteMany();
+  await prisma.chat.deleteMany();
+  await prisma.messages.deleteMany();
+
   await prisma.user.upsert({
     where: {
       id: 'cle8zst2e0230ypfn3pew738s',
