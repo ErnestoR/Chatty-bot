@@ -29,10 +29,61 @@ const chatSchema = z.object({
 type FormData = z.infer<typeof chatSchema>;
 
 const ChatCard = ({ messages }: ChatCardProps) => {
-  const { register, handleSubmit } = useForm<FormData>({
+  const { register, handleSubmit, setValue } = useForm<FormData>({
     resolver: zodResolver(chatSchema),
   });
-  const { mutate } = api.chat.chatWithBot.useMutation();
+  const trcpApiContext = api.useContext();
+  const { mutate } = api.chat.chatWithBot.useMutation({
+    /**
+     * Will optimistically update the UI adding the new message from the
+     * user to the chat list.
+     */
+    async onMutate(variables) {
+      await trcpApiContext.chat.getMessages.cancel();
+
+      // Snapshot the previous value
+      const previousSnapshot = trcpApiContext.chat.getMessages.getData();
+
+      const newMessage = {
+        id: Math.random().toString(),
+        chatId: Math.random().toString(),
+        message: variables.message,
+        isBot: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      trcpApiContext.chat.getMessages.setData(undefined, {
+        status: 201,
+        result: {
+          messages: [...(previousSnapshot?.result?.messages || []), newMessage],
+        },
+      });
+
+      return {
+        previousSnapshot,
+      };
+    },
+
+    /**
+     * Remove the optimistically added message from the chat list if
+     * there is an error.
+     */
+    onError: (err, newTodo, context) => {
+      if (context?.previousSnapshot) {
+        trcpApiContext.chat.getMessages.setData(
+          undefined,
+          context.previousSnapshot,
+        );
+      }
+    },
+    // Always refetch after error or success:
+    onSettled: () => {
+      trcpApiContext.chat.getMessages.invalidate().catch((error) => {
+        console.log('onSettled: ', error);
+      });
+    },
+  });
 
   const { scrollIntoView, targetRef, scrollableRef } =
     useScrollIntoView<HTMLDivElement>({
@@ -40,12 +91,8 @@ const ChatCard = ({ messages }: ChatCardProps) => {
     });
 
   const onSubmit: SubmitHandler<FormData> = (data) => {
-    console.log(data);
-    mutate(data, {
-      onSuccess: (response) => {
-        console.log(response.result);
-      },
-    });
+    setValue('message', '');
+    mutate(data);
   };
 
   useEffect(() => {
@@ -93,7 +140,7 @@ const ChatCard = ({ messages }: ChatCardProps) => {
           type="text"
           className="input-bordered input-primary input mt-8 w-full rounded"
           onFocus={() => {
-            scrollIntoView({ alignment: 'center' });
+            scrollIntoView();
           }}
         />
       </form>
