@@ -1,14 +1,8 @@
 import type { GetServerSideProps } from 'next';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
 
 import { getServerAuthSession } from 'server/auth';
 import NavBar from 'components/NavBar';
-import Label from 'components/Label';
-import Input from 'components/Input';
 import { api } from 'utils/api';
-import { user } from 'server/api/routers/user';
 
 import UserForm from './UserForm';
 

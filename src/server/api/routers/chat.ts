@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { Configuration, OpenAIApi } from 'openai';
-import type { Messages } from '@prisma/client';
 
 import { env } from 'env.mjs';
 
@@ -13,7 +12,7 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 
 export const chat = createTRPCRouter({
-  getMessages: protectedProcedure.query(async ({ input, ctx }) => {
+  getMessages: protectedProcedure.query(async ({ ctx }) => {
     const { id } = ctx.session.user;
 
     const messages = await ctx.prisma.messages.findMany({
