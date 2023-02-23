@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { Configuration, OpenAIApi } from 'openai';
 import type { Messages } from '@prisma/client';
 
@@ -5,25 +6,23 @@ import { env } from 'env.mjs';
 
 import { createTRPCRouter, protectedProcedure } from '../trpc';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
 const configuration = new Configuration({
   apiKey: env.CHATGPT3_API_KEY,
 });
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+
 const openai = new OpenAIApi(configuration);
 
 export const chat = createTRPCRouter({
   getMessages: protectedProcedure.query(async ({ input, ctx }) => {
     const { id } = ctx.session.user;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    const messages = (await ctx.prisma.messages.findMany({
+    const messages = await ctx.prisma.messages.findMany({
       where: {
         chat: {
           userId: id,
         },
       },
-    })) as Array<Messages>;
+    });
 
     return {
       status: 201,
@@ -33,53 +32,69 @@ export const chat = createTRPCRouter({
     };
   }),
 
-  //   const response = await openai.createCompletion({
-  //     model: 'text-davinci-003',
-  //     prompt:
-  //       'You: What have you been up to?\nFriend: Watching old movies.\nYou: Did you watch anything interesting?\nFriend:',
-  //     temperature: 0.5,
-  //     max_tokens: 60,
-  //     top_p: 1.0,
-  //     frequency_penalty: 0.5,
-  //     presence_penalty: 0.0,
-  //     stop: ['You:'],
-  //   });
+  chatWithBot: protectedProcedure
+    .input(
+      z.object({
+        message: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { message } = input;
+      const { id } = ctx.session.user;
 
-  //   return {
-  //     status: 201,
-  //     message: 'Message sent successfully',
-  //     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-  //     result: response?.data?.choices?.[0]?.text,
-  //   };
-  // }),
+      const messages = await ctx.prisma.messages.findMany({
+        where: {
+          chat: {
+            userId: id,
+          },
+        },
+      });
 
-  // chatWithBot: protectedProcedure
-  //   .input(
-  //     z.object({
-  //       message: z.string(),
-  //     }),
-  //   )
-  //   .mutation(async ({ input, ctx }) => {
-  //     const { message } = input;
+      const previousChatContext = messages.reduce((acc, message) => {
+        if (message.isBot) {
+          return acc + `Friend: ${message.message}\n`;
+        }
 
-  //     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
-  //     const response = await openai.createCompletion({
-  //       model: 'text-davinci-003',
-  //       prompt:
-  //         'You: What have you been up to?\nFriend: Watching old movies.\nYou: Did you watch anything interesting?\nFriend:',
-  //       temperature: 0.5,
-  //       max_tokens: 60,
-  //       top_p: 1.0,
-  //       frequency_penalty: 0.5,
-  //       presence_penalty: 0.0,
-  //       stop: ['You:'],
-  //     });
+        return acc + `You: ${message.message}\n`;
+      }, '');
 
-  //     return {
-  //       status: 201,
-  //       message: 'Message sent successfully',
-  //       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-  //       result: response?.data?.choices?.[0]?.text,
-  //     };
-  //   }),
+      const prompt = `${previousChatContext}You: ${message}\nFriend: `;
+
+      const response = await openai.createCompletion({
+        model: 'text-davinci-003',
+        prompt,
+        temperature: 0.5,
+        max_tokens: 60,
+        top_p: 1.0,
+        frequency_penalty: 0.5,
+        presence_penalty: 0.0,
+        stop: ['You:'],
+      });
+
+      await ctx.prisma.chat.update({
+        where: {
+          id: messages?.[0]?.chatId,
+        },
+        data: {
+          messages: {
+            create: [
+              {
+                message,
+                isBot: false,
+              },
+              {
+                message: response?.data?.choices?.[0]?.text as string,
+                isBot: true,
+              },
+            ],
+          },
+        },
+      });
+
+      return {
+        status: 201,
+        message: 'Message sent successfully',
+        result: response?.data?.choices?.[0]?.text,
+      };
+    }),
 });

@@ -14,7 +14,6 @@ async function main() {
     update: {},
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
   await prisma.chat.upsert({
     where: {
       id: 'clef9a8y33401ypctjma6uv3j',
